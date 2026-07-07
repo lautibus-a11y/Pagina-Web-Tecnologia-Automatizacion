@@ -1458,10 +1458,10 @@
             animateCounter('stat-casas', 240, '+');
             animateCounter('stat-clientes', 99, '%');
 
-            // Smoothly animate Hero elements
-            gsap.from('#hero h1', { y: 30, opacity: 0, duration: 1, delay: 0.1 });
-            gsap.from('#hero p', { y: 20, opacity: 0, duration: 1, delay: 0.3 });
-            gsap.from('#hero .flex', { y: 20, opacity: 0, duration: 1, delay: 0.5 });
+            // Smoothly animate Hero elements (Acelerado a petición)
+            gsap.from('#hero h1', { y: 20, opacity: 0, duration: 0.8, delay: 0.05 });
+            gsap.from('#hero p', { y: 20, opacity: 0, duration: 0.8, delay: 0.15 });
+            gsap.from('#hero .flex', { y: 20, opacity: 0, duration: 0.8, delay: 0.25 });
         }
 
         // ----------------- CUSTOM CURSOR LOGIC -----------------
@@ -1554,29 +1554,7 @@
             });
         });
 
-        // ----------------- PORTFOLIO LIGHTBOX FUNCTIONALITY -----------------
-        const lightboxModal = document.getElementById('lightbox-modal');
-        const lightboxImg = document.getElementById('lightbox-img');
-        const lightboxTitle = document.getElementById('lightbox-title');
-
-        function openLightbox(title, imgUrl) {
-            lightboxImg.src = imgUrl;
-            lightboxTitle.innerText = title;
-            lightboxModal.classList.remove('opacity-0', 'pointer-events-none');
-            lightboxModal.classList.add('opacity-100', 'pointer-events-auto');
-        }
-
-        function closeLightbox() {
-            lightboxModal.classList.add('opacity-0', 'pointer-events-none');
-            lightboxModal.classList.remove('opacity-100', 'pointer-events-auto');
-        }
-
-        // Close lightbox on click outside the image
-        lightboxModal.addEventListener('click', (e) => {
-            if (e.target === lightboxModal) {
-                closeLightbox();
-            }
-        });
+        // (Lightbox removido por uso de modal modal-project)
 
         // ----------------- BEFORE/AFTER INTERACTIVE SLIDER -----------------
         const sliderContainer = document.getElementById('slider-container');
@@ -1638,6 +1616,43 @@
 
         // ----------------- GSAP SMOOTH SCROLLING APPEARANCE -----------------
         gsap.registerPlugin(ScrollTrigger);
+
+        // Word Reveal Animation for Titles and Subtitles
+        gsap.utils.toArray('h2, h3, span.tracking-\\[0\\.3em\\]').forEach(elem => {
+            // Ignore hero titles or elements containing HTML nodes to avoid breaking them
+            if (elem.closest('#hero') || elem.children.length > 0) return;
+            
+            const text = elem.innerText;
+            elem.innerHTML = '';
+            const words = text.split(' ');
+            words.forEach(word => {
+                const wordSpan = document.createElement('span');
+                wordSpan.style.display = 'inline-block';
+                wordSpan.style.overflow = 'hidden';
+                wordSpan.style.verticalAlign = 'top';
+                
+                const innerSpan = document.createElement('span');
+                innerSpan.style.display = 'inline-block';
+                innerSpan.innerText = word + '\u00A0'; // Non-breaking space
+                innerSpan.classList.add('word-inner');
+                
+                wordSpan.appendChild(innerSpan);
+                elem.appendChild(wordSpan);
+            });
+
+            gsap.from(elem.querySelectorAll('.word-inner'), {
+                scrollTrigger: {
+                    trigger: elem,
+                    start: "top 90%",
+                    toggleActions: "play none none none"
+                },
+                y: "110%",
+                opacity: 0,
+                duration: 0.7,
+                stagger: 0.04,
+                ease: "power3.out"
+            });
+        });
 
         gsap.utils.toArray('.timeline-step, .portfolio-item').forEach(elem => {
             gsap.from(elem, {
