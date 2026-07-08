@@ -1495,6 +1495,12 @@
                             preloader.style.display = 'none';
                             // Run introduction micro animations once loaded
                             runIntroAnimations();
+                            // Show chatbot after a slight delay for better UX
+                            setTimeout(() => {
+                                if(typeof showChatbotAfterLoad === 'function') {
+                                    showChatbotAfterLoad();
+                                }
+                            }, 1000);
                         }
                     });
                 } else {
@@ -2180,6 +2186,292 @@
                 });
             });
             observer.observe(document.getElementById('preloader'), { attributes: true, attributeFilter: ['style'] });
+        }
+    </script>
+
+    <!-- Chatbot Floating Button -->
+    <div id="chatbot-container" class="fixed left-4 sm:left-6 flex flex-col items-start opacity-0 pointer-events-none translate-y-4 transition-all duration-700 ease-out" style="bottom: 85px; z-index: 999999;">
+        <!-- Chat Bubble -->
+        <div id="chatbot-bubble" class="mb-3 bg-white px-4 py-2.5 rounded-2xl rounded-bl-none shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100/50 flex items-center justify-between gap-3 cursor-pointer group custom-interactive relative transition-all duration-500" onclick="toggleChatbot()">
+            <span class="text-xs font-bold font-display" style="color: #3b82f6;">¡Hola! ¿Puedo responder tus dudas?</span>
+            <button onclick="event.stopPropagation(); closeChatbotBubble()" class="text-slate-400 hover:text-blue-500 transition-colors custom-interactive">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="absolute -bottom-2 left-0 w-4 h-4 bg-white border-b border-l border-slate-100/50 transform rotate-[-45deg] translate-x-3 -translate-y-1"></div>
+        </div>
+        
+        <!-- Chatbot Button (White background, blue icon) -->
+        <button onclick="toggleChatbot()" class="group flex items-center justify-center w-14 h-14 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 hover:-translate-y-1 hover:scale-105 transition-all duration-300 cursor-none custom-interactive relative">
+            <!-- Raw SVG to guarantee rendering without relying on Lucide script timing or Tailwind classes -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            <!-- Notification dot -->
+            <span id="chatbot-badge" class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+        </button>
+    </div>
+
+    <!-- Chatbot Window -->
+    <div id="chatbot-window" class="fixed left-4 sm:left-6 bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden transition-all duration-300 opacity-0 pointer-events-none translate-y-4 scale-95 origin-bottom-left" style="bottom: 85px; z-index: 999999; height: 450px; width: calc(100vw - 32px); max-width: 380px;">
+        <!-- Header -->
+        <div class="text-white p-4 flex justify-between items-center shrink-0" style="background-color: #3b82f6;">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                <span class="font-display font-bold text-sm tracking-wide">AURA Bot</span>
+            </div>
+            <button onclick="toggleChatbot()" class="hover:bg-white/20 p-1.5 rounded-lg transition-colors custom-interactive cursor-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        
+        <!-- Messages Area -->
+        <div id="chatbot-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 text-sm">
+            <!-- Initial Message -->
+            <div class="flex gap-2">
+                <div class="w-7 h-7 rounded-full text-white flex items-center justify-center shrink-0 mt-1 shadow-md" style="background-color: #3b82f6;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-700 leading-relaxed text-[13px]">
+                    ¡Hola! Soy el asistente virtual de AURA. ¿En qué te puedo ayudar hoy? Puedes escribirme o elegir una opción:
+                </div>
+            </div>
+        </div>
+        
+        <!-- Options Area -->
+        <div id="chatbot-options" class="p-3 bg-white border-t border-slate-100 flex flex-col gap-2 shrink-0 max-h-32 overflow-y-auto">
+            <!-- Options injected by JS -->
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="chatbot-form" onsubmit="handleUserSubmit(event)" class="p-3 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0">
+            <input type="text" id="chat-input" placeholder="Escribe tu mensaje..." autocomplete="off" class="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-[13px] text-slate-700 focus:outline-none transition-colors custom-interactive cursor-text" style="outline: none;">
+            <button type="submit" class="w-9 h-9 rounded-full text-white flex items-center justify-center hover:scale-105 transition-transform custom-interactive cursor-none shrink-0 shadow-md" style="background-color: #3b82f6;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </form>
+    </div>
+
+    <!-- Chatbot Logic -->
+    <script>
+        const chatQuestions = [
+            { id: 1, text: "¿Qué servicios ofrecen?", answer: "Ofrecemos servicios integrales de tecnología premium: Home Cinema Elite, Domótica Invisible, Audio Multiroom de Alta Fidelidad y Soluciones Corporativas." },
+            { id: 2, text: "¿Qué es la Domótica Invisible?", answer: "Es nuestra especialidad. Integramos sistemas inteligentes de iluminación, clima y seguridad de forma que la tecnología no altere la estética y el diseño interior de tu hogar." },
+            { id: 3, text: "¿Dónde realizan instalaciones?", answer: "Realizamos proyectos principalmente en zonas exclusivas de Argentina, como Nordelta, Pilar, Puerto Madero, San Isidro y Recoleta." },
+            { id: 4, text: "¿Cómo puedo contactarlos?", answer: "Puedes usar el botón de WhatsApp para hablar con un asesor en vivo, o utilizar el formulario de contacto ubicado al pie de la página." }
+        ];
+
+        const keywordRules = [
+            { 
+                keywords: ["hola", "buen dia", "buenas tardes", "buenas noches", "que tal", "saludos"], 
+                answer: "¡Hola! Qué gusto saludarte. Puedes preguntarme sobre nuestros servicios de domótica, Home Cinema, ubicaciones de instalación o cómo contactarnos." 
+            },
+            { 
+                keywords: ["gracias", "muchas gracias", "perfecto", "genial", "ok", "vale", "adios", "chau", "hasta luego"], 
+                answer: "¡A ti! Si necesitas algo más, aquí estaré. No dudes en hacer clic en el botón de WhatsApp si deseas atención personalizada." 
+            },
+            { 
+                keywords: ["precio", "costo", "presupuesto", "cotizar", "cotizacion", "cuanto", "pagar", "valor"], 
+                answer: "Todos nuestros proyectos de tecnología premium y domótica son hechos a medida según las necesidades de cada cliente. Para poder darte un presupuesto exacto, te invitamos a contactarnos por WhatsApp para coordinar una evaluación inicial gratuita." 
+            },
+            { 
+                keywords: ["contacto", "telefono", "llamar", "hablar", "whatsapp", "mensaje", "comunicar", "asesor"], 
+                answer: "La forma más rápida es haciendo clic en el ícono verde de WhatsApp flotante (debajo de mí) para hablar con un experto. También puedes llenar el formulario que está al final de esta página web." 
+            },
+            { 
+                keywords: ["cine", "cinema", "proyector", "pantalla", "butacas", "pelicula", "atmos", "acustica", "teatro"], 
+                answer: "Nuestro servicio de **Home Cinema Elite** diseña salas de cine en casa con estándares internacionales: acústica profesional, proyectores 4K nativos, sonido Dolby Atmos inmersivo y butacas motorizadas. ¡Es llevar la experiencia premium del cine a la intimidad de tu hogar!" 
+            },
+            { 
+                keywords: ["domotica", "automatizacion", "luces", "iluminacion", "clima", "climatizacion", "seguridad", "inteligente", "invisible", "cortinas"], 
+                answer: "La **Domótica Invisible** es nuestra especialidad. Centralizamos el control de iluminación, climatización, seguridad, cortinas y más, integrando la tecnología en el diseño interior de forma imperceptible para un control simple desde tu celular o voz." 
+            },
+            { 
+                keywords: ["audio", "sonido", "musica", "multiroom", "parlantes", "fidelidad", "altavoces", "hifi"], 
+                answer: "Con **Audio Multiroom de Alta Fidelidad**, distribuimos sonido premium por todos los ambientes de tu casa. Usamos altavoces invisibles que se camuflan en el techo o pared para que disfrutes de tu música con calidad pura sin alterar la estética visual." 
+            },
+            { 
+                keywords: ["empresa", "corporativo", "oficina", "salas", "reunion", "videoconferencia", "negocio"], 
+                answer: "Nuestras **Soluciones Corporativas** están orientadas a oficinas de alto nivel. Implementamos salas de reuniones inteligentes, sistemas de videoconferencia profesionales y control de iluminación que aumentan la productividad y dan una imagen impecable." 
+            },
+            { 
+                keywords: ["donde", "ubicacion", "zona", "lugar", "argentina", "nordelta", "pilar", "puerto madero", "capital", "instalacion", "trabajan", "direccion"], 
+                answer: "Realizamos instalaciones de lujo y proyectos a medida principalmente en Argentina. Tenemos experiencia integrando sistemas en casas y oficinas exclusivas de zonas como Nordelta, Pilar, San Isidro, Puerto Madero y Belgrano." 
+            },
+            {
+                keywords: ["aura", "ustedes", "quienes", "nosotros", "historia", "sobre", "acerca"],
+                answer: "Somos **AURA**, expertos en integración tecnológica y domótica de lujo. Nuestra misión es crear una armonía perfecta entre tecnología de vanguardia y discreción estética para hogares y oficinas premium."
+            },
+            {
+                keywords: ["servicio", "servicios", "ofrecen", "hacen", "dedican"],
+                answer: "Nuestros principales servicios de tecnología premium son: **Home Cinema Elite**, **Domótica Invisible**, **Audio Multiroom de Alta Fidelidad** y **Soluciones Corporativas**. ¿Sobre cuál de ellos te gustaría obtener más detalles?"
+            }
+        ];
+
+        function getAnswerByKeywords(text) {
+            // Normalize to lowercase and remove accents for better matching
+            let normalizedText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            for (let rule of keywordRules) {
+                for (let kw of rule.keywords) {
+                    if (normalizedText.includes(kw)) {
+                        return rule.answer;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Add logic to show chatbot after preloader
+        function showChatbotAfterLoad() {
+            const container = document.getElementById('chatbot-container');
+            if (container) {
+                container.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                container.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+            }
+        }
+
+        const chatWindow = document.getElementById('chatbot-window');
+        const chatMessages = document.getElementById('chatbot-messages');
+        const chatOptions = document.getElementById('chatbot-options');
+        const chatBubble = document.getElementById('chatbot-bubble');
+        const chatBadge = document.getElementById('chatbot-badge');
+        let chatOpen = false;
+
+        function toggleChatbot() {
+            chatOpen = !chatOpen;
+            if (chatOpen) {
+                chatWindow.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4', 'scale-95');
+                chatWindow.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0', 'scale-100');
+                if (chatBubble) chatBubble.style.opacity = '0';
+                if (chatBadge) chatBadge.style.display = 'none';
+                setTimeout(() => { if (chatBubble) chatBubble.style.display = 'none'; }, 300);
+                if (chatOptions.innerHTML.trim() === '') {
+                    renderChatOptions();
+                }
+                setTimeout(() => document.getElementById('chat-input').focus(), 300);
+            } else {
+                chatWindow.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4', 'scale-95');
+                chatWindow.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0', 'scale-100');
+            }
+        }
+
+        function closeChatbotBubble() {
+            if (chatBubble) {
+                chatBubble.style.opacity = '0';
+                setTimeout(() => { chatBubble.style.display = 'none'; }, 300);
+            }
+        }
+
+        function addMessage(text, isUser = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex gap-2 ${isUser ? 'flex-row-reverse' : ''}`;
+            
+            const iconHTML = isUser ? '' : `
+                <div class="w-7 h-7 rounded-full text-white flex items-center justify-center shrink-0 mt-1 shadow-md" style="background-color: #3b82f6;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+            `;
+            
+            // Format bold text using simple regex
+            const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            const textHTML = `
+                <div class="p-3.5 rounded-2xl text-[13px] leading-relaxed ${isUser ? 'bg-slate-800 text-white rounded-tr-none shadow-md' : 'bg-white text-slate-700 rounded-tl-none border border-slate-100 shadow-sm'}">
+                    ${formattedText}
+                </div>
+            `;
+            
+            msgDiv.innerHTML = iconHTML + textHTML;
+            chatMessages.appendChild(msgDiv);
+            
+            setTimeout(() => {
+                chatMessages.scrollTo({
+                    top: chatMessages.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }
+
+        function showTypingAndRespond(responseText, showOptions = true) {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'flex gap-2';
+            typingDiv.innerHTML = `
+                <div class="w-7 h-7 rounded-full text-white flex items-center justify-center shrink-0 mt-1 shadow-md" style="background-color: #3b82f6;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse"></span>
+                    <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.2s"></span>
+                    <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.4s"></span>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+            
+            setTimeout(() => {
+                typingDiv.remove();
+                addMessage(responseText, false);
+                if (showOptions) {
+                    setTimeout(renderChatOptions, 800);
+                }
+            }, 1000);
+        }
+
+        function handleChatOption(id) {
+            const q = chatQuestions.find(x => x.id === id);
+            if (!q) return;
+            
+            chatOptions.innerHTML = '';
+            addMessage(q.text, true);
+            showTypingAndRespond(q.answer, true);
+        }
+        
+        function handleUserSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            input.value = '';
+            chatOptions.innerHTML = '';
+            
+            addMessage(text, true);
+            
+            const keywordAnswer = getAnswerByKeywords(text);
+            
+            if (keywordAnswer) {
+                showTypingAndRespond(keywordAnswer, true);
+            } else {
+                showTypingAndRespond("Entiendo. Para darte información más detallada y precisa al respecto, lo ideal sería que charles con un asesor humano a través de WhatsApp (ícono verde) o desde nuestra sección de contacto. ¿Puedo ayudarte con alguna otra duda rápida sobre nuestros servicios?", true);
+            }
+        }
+
+        function renderChatOptions() {
+            chatOptions.innerHTML = '';
+            chatQuestions.forEach((q, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'text-left text-[12px] bg-white text-slate-700 py-2 px-3 rounded-xl transition-all duration-300 border border-slate-100 cursor-none custom-interactive';
+                btn.style.hover = "border-color: #3b82f6; color: #3b82f6; background-color: rgba(59, 130, 246, 0.1);";
+                btn.innerText = q.text;
+                btn.onmouseenter = () => {
+                    btn.style.borderColor = '#3b82f6';
+                    btn.style.color = '#3b82f6';
+                    btn.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                };
+                btn.onmouseleave = () => {
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                    btn.style.backgroundColor = '';
+                };
+                btn.onclick = () => handleChatOption(q.id);
+                chatOptions.appendChild(btn);
+            });
+            
+            // Fix: scroll messages after options are added so they don't cover the chat response
+            setTimeout(() => {
+                chatMessages.scrollTo({
+                    top: chatMessages.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
         }
     </script>
 </body>
